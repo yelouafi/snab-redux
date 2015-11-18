@@ -1,0 +1,16 @@
+{
+  "name": "snab-redux-examples",
+  "version": "0.0.1",
+  "description": "snab-redux examples",
+  "author": "Yassine Elouafi <yelouafi@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-preset-react": "^6.1.18",
+    "babelify": "^7.2.0"
+  },
+  "dependencies": {
+    "redux": "^3.0.4",
+    "redux-thunk": "^1.0.0",
+    "snabbdom-jsx": "^0.1.3"
+  }
+}

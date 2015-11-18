@@ -1,9 +1,7 @@
-import { pipe } from './helpers';
-
 export default function(dispatch) {
 
   function fnInvoker(o) {
-    return Array.isArray(o.fn) ? pipe(...o.fn, dispatch) : pipe(o.fn, dispatch);
+    return ev => dispatch(o.fn(ev));
   }
 
   function updateEventListeners(oldVnode, vnode) {

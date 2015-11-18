@@ -1,2 +1,1 @@
-require('./helpers');
-require('./actionDispatcher');
+require('./actionDispatcher')
