@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "redux": "^3.0.4",
+    "redux-logger": "^2.0.4",
     "redux-thunk": "^1.0.0",
     "snabbdom-jsx": "^0.1.3"
   }

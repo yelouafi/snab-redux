@@ -1,0 +1,10 @@
+{
+  "name": "shopping-cart",
+  "version": "0.0.1",
+  "description": "snab-redux shopping cart example",
+  "scripts": {
+    "build": "browserify js/main.js -t babelify --outfile build.js"
+  },
+  "author": "Yassine Elouafi <yelouafi@gmail.com>",
+  "license": "MIT"
+}

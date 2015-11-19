@@ -97,127 +97,387 @@ process.umask = function() { return 0; };
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.increment = increment;
-exports.decrement = decrement;
-exports.incrementIfOdd = incrementIfOdd;
-exports.incrementAsync = incrementAsync;
-var INCREMENT_COUNTER = exports.INCREMENT_COUNTER = 'INCREMENT_COUNTER';
-var DECREMENT_COUNTER = exports.DECREMENT_COUNTER = 'DECREMENT_COUNTER';
+exports.getAllProducts = getAllProducts;
+exports.addToCart = addToCart;
+exports.checkout = checkout;
 
-function increment() {
-  return {
-    type: INCREMENT_COUNTER
-  };
-}
+var _shop = require('../api/shop');
 
-function decrement() {
-  return {
-    type: DECREMENT_COUNTER
-  };
-}
+var _shop2 = _interopRequireDefault(_shop);
 
-function incrementIfOdd() {
-  return function (dispatch, getState) {
-    var _getState = getState();
+var _ActionTypes = require('../constants/ActionTypes');
 
-    var counter = _getState.counter;
-
-    if (counter % 2 === 0) {
-      return;
-    }
-
-    dispatch(increment());
-  };
-}
-
-function incrementAsync() {
-  var delay = arguments.length <= 0 || arguments[0] === undefined ? 1000 : arguments[0];
-
-  return function (dispatch) {
-    setTimeout(function () {
-      dispatch(increment());
-    }, delay);
-  };
-}
-
-},{}],3:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _snabbdomJsx = require('snabbdom-jsx');
-
-exports.default = function (_ref) {
-  var counter = _ref.counter;
-  var _ref$actions = _ref.actions;
-  var increment = _ref$actions.increment;
-  var incrementIfOdd = _ref$actions.incrementIfOdd;
-  var incrementAsync = _ref$actions.incrementAsync;
-  var decrement = _ref$actions.decrement;
-  return (0, _snabbdomJsx.html)(
-    'p',
-    null,
-    'Clicked: ',
-    counter,
-    ' times',
-    ' ',
-    (0, _snabbdomJsx.html)(
-      'button',
-      { 'on-click': increment },
-      '+'
-    ),
-    ' ',
-    (0, _snabbdomJsx.html)(
-      'button',
-      { 'on-click': decrement },
-      '-'
-    ),
-    ' ',
-    (0, _snabbdomJsx.html)(
-      'button',
-      { 'on-click': incrementIfOdd },
-      'Increment if odd'
-    ),
-    ' ',
-    (0, _snabbdomJsx.html)(
-      'button',
-      { 'on-click': function onClick() {
-          return incrementAsync();
-        } },
-      'Increment async'
-    )
-  );
-}; /** @jsx html */
-
-},{"snabbdom-jsx":19}],4:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _snabbdomJsx = require('snabbdom-jsx');
-
-var _Counter = require('../components/Counter');
-
-var _Counter2 = _interopRequireDefault(_Counter);
-
-var _counter = require('../actions/counter');
-
-var actions = _interopRequireWildcard(_counter);
+var types = _interopRequireWildcard(_ActionTypes);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function receiveProducts(products) {
+  return {
+    type: types.RECEIVE_PRODUCTS,
+    products: products
+  };
+}
+
+function getAllProducts() {
+  return function (dispatch) {
+    _shop2.default.getProducts(function (products) {
+      dispatch(receiveProducts(products));
+    });
+  };
+}
+
+function addToCartUnsafe(productId) {
+  return {
+    type: types.ADD_TO_CART,
+    productId: productId
+  };
+}
+
+function addToCart(productId) {
+  return function (dispatch, getState) {
+    if (getState().products.byId[productId].inventory > 0) {
+      dispatch(addToCartUnsafe(productId));
+    }
+  };
+}
+
+function checkout(products) {
+  return function (dispatch, getState) {
+    var cart = getState().cart;
+
+    dispatch({
+      type: types.CHECKOUT_REQUEST
+    });
+    _shop2.default.buyProducts(products, function () {
+      dispatch({
+        type: types.CHECKOUT_SUCCESS,
+        cart: cart
+      });
+      // Replace the line above with line below to rollback on failure:
+      // dispatch({ type: types.CHECKOUT_FAILURE, cart })
+    });
+  };
+}
+
+},{"../api/shop":4,"../constants/ActionTypes":9}],3:[function(require,module,exports){
+module.exports=[
+  {"id": 1, "title": "iPad 4 Mini", "price": 500.01, "inventory": 2},
+  {"id": 2, "title": "H&M T-Shirt White", "price": 10.99, "inventory": 10},
+  {"id": 3, "title": "Charli XCX - Sucker CD", "price": 19.99, "inventory": 5}
+]
+
+},{}],4:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _products2 = require('./products.json');
+
+var _products3 = _interopRequireDefault(_products2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var TIMEOUT = 100; /**
+                    * Mocking client-server processing
+                    */
+
+exports.default = {
+  getProducts: function getProducts(cb, timeout) {
+    setTimeout(function () {
+      return cb(_products3.default);
+    }, timeout || TIMEOUT);
+  },
+  buyProducts: function buyProducts(payload, cb, timeout) {
+    setTimeout(function () {
+      return cb();
+    }, timeout || TIMEOUT);
+  }
+};
+
+},{"./products.json":3}],5:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+var _Product = require('./Product');
+
+var _Product2 = _interopRequireDefault(_Product);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/** @jsx html */
+
 exports.default = function (_ref) {
-  var state = _ref.state;
-  return (0, _snabbdomJsx.html)(_Counter2.default, { counter: state.counter, actions: actions });
+  var products = _ref.products;
+  var total = _ref.total;
+  var onCheckoutClicked = _ref.onCheckoutClicked;
+
+  var hasProducts = products.length > 0;
+  var nodes = !hasProducts ? (0, _snabbdomJsx.html)(
+    'em',
+    null,
+    'Please add some products to cart.'
+  ) : products.map(function (product) {
+    return (0, _snabbdomJsx.html)(_Product2.default, {
+      title: product.title,
+      price: product.price,
+      quantity: product.quantity,
+      key: product.id });
+  });
+
+  return (0, _snabbdomJsx.html)(
+    'div',
+    null,
+    (0, _snabbdomJsx.html)(
+      'h3',
+      null,
+      'Your Cart'
+    ),
+    (0, _snabbdomJsx.html)(
+      'div',
+      null,
+      nodes
+    ),
+    (0, _snabbdomJsx.html)(
+      'p',
+      null,
+      'Total: $',
+      total
+    ),
+    (0, _snabbdomJsx.html)(
+      'button',
+      { 'on-click': onCheckoutClicked,
+        disabled: !hasProducts },
+      'Checkout'
+    )
+  );
+};
+
+},{"./Product":6,"snabbdom-jsx":28}],6:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+exports.default = function (_ref) {
+    var price = _ref.price;
+    var quantity = _ref.quantity;
+    var title = _ref.title;
+    return (0, _snabbdomJsx.html)(
+        'div',
+        null,
+        ' ',
+        title,
+        ' - $',
+        price,
+        ' ',
+        quantity ? 'x ' + quantity : '',
+        ' '
+    );
 }; /** @jsx html */
 
-},{"../actions/counter":2,"../components/Counter":3,"snabbdom-jsx":19}],5:[function(require,module,exports){
+},{"snabbdom-jsx":28}],7:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+var _Product = require('./Product');
+
+var _Product2 = _interopRequireDefault(_Product);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/** @jsx html */
+
+exports.default = function (_ref) {
+  var _ref$product = _ref.product;
+  var title = _ref$product.title;
+  var price = _ref$product.price;
+  var inventory = _ref$product.inventory;
+  var onAddToCartClicked = _ref.onAddToCartClicked;
+  return (0, _snabbdomJsx.html)(
+    'div',
+    {
+      style: { 'margin-bottom': '20px' } },
+    (0, _snabbdomJsx.html)(_Product2.default, {
+      title: title,
+      price: price }),
+    (0, _snabbdomJsx.html)(
+      'button',
+      {
+        'on-click': onAddToCartClicked,
+        disabled: !inventory },
+      inventory > 0 ? 'Add to cart' : 'Sold Out'
+    )
+  );
+};
+
+},{"./Product":6,"snabbdom-jsx":28}],8:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+exports.default = function (_ref, children) {
+  var title = _ref.title;
+  return (0, _snabbdomJsx.html)(
+    'div',
+    null,
+    (0, _snabbdomJsx.html)(
+      'h3',
+      null,
+      title
+    ),
+    (0, _snabbdomJsx.html)(
+      'div',
+      null,
+      children
+    )
+  );
+}; /** @jsx html */
+
+},{"snabbdom-jsx":28}],9:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var ADD_TO_CART = exports.ADD_TO_CART = 'ADD_TO_CART';
+var CHECKOUT_REQUEST = exports.CHECKOUT_REQUEST = 'CHECKOUT_REQUEST';
+var CHECKOUT_SUCCESS = exports.CHECKOUT_SUCCESS = 'CHECKOUT_SUCCESS';
+var CHECKOUT_FAILURE = exports.CHECKOUT_FAILURE = 'CHECKOUT_FAILURE';
+var RECEIVE_PRODUCTS = exports.RECEIVE_PRODUCTS = 'RECEIVE_PRODUCTS';
+
+},{}],10:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+var _ProductsContainer = require('./ProductsContainer');
+
+var _ProductsContainer2 = _interopRequireDefault(_ProductsContainer);
+
+var _CartContainer = require('./CartContainer');
+
+var _CartContainer2 = _interopRequireDefault(_CartContainer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (_ref) {
+  var state = _ref.state;
+  return (0, _snabbdomJsx.html)(
+    'div',
+    null,
+    (0, _snabbdomJsx.html)(
+      'h2',
+      null,
+      'Shopping Cart Example'
+    ),
+    (0, _snabbdomJsx.html)('hr', null),
+    (0, _snabbdomJsx.html)(_ProductsContainer2.default, { state: state }),
+    (0, _snabbdomJsx.html)('hr', null),
+    (0, _snabbdomJsx.html)(_CartContainer2.default, { state: state })
+  );
+}; /** @jsx html */
+
+},{"./CartContainer":11,"./ProductsContainer":12,"snabbdom-jsx":28}],11:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+var _actions = require('../actions');
+
+var _reducers = require('../reducers');
+
+var _Cart = require('../components/Cart');
+
+var _Cart2 = _interopRequireDefault(_Cart);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/** @jsx html */
+
+exports.default = function (_ref) {
+  var state = _ref.state;
+
+  var products = (0, _reducers.getCartProducts)(state),
+      total = (0, _reducers.getTotal)(state);
+
+  return (0, _snabbdomJsx.html)(_Cart2.default, {
+    products: products,
+    total: total,
+    onCheckoutClicked: _actions.checkout });
+};
+
+},{"../actions":2,"../components/Cart":5,"../reducers":15,"snabbdom-jsx":28}],12:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _snabbdomJsx = require('snabbdom-jsx');
+
+var _actions = require('../actions');
+
+var _products = require('../reducers/products');
+
+var _ProductItem = require('../components/ProductItem');
+
+var _ProductItem2 = _interopRequireDefault(_ProductItem);
+
+var _ProductsList = require('../components/ProductsList');
+
+var _ProductsList2 = _interopRequireDefault(_ProductsList);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (_ref) {
+  var state = _ref.state;
+
+  var products = (0, _products.getVisibleProducts)(state.products);
+
+  return (0, _snabbdomJsx.html)(
+    _ProductsList2.default,
+    { title: 'Products' },
+    products.map(function (product) {
+      return (0, _snabbdomJsx.html)(_ProductItem2.default, {
+        key: product.id,
+        product: product,
+        onAddToCartClicked: function onAddToCartClicked() {
+          return (0, _actions.addToCart)(product.id);
+        } });
+    })
+  );
+}; /** @jsx html */
+
+},{"../actions":2,"../components/ProductItem":7,"../components/ProductsList":8,"../reducers/products":16,"snabbdom-jsx":28}],13:[function(require,module,exports){
 'use strict';
 
 var _snabbdomJsx = require('snabbdom-jsx');
@@ -226,97 +486,351 @@ var _mount = require('../../../src/mount');
 
 var _mount2 = _interopRequireDefault(_mount);
 
-var _App = require('./containers/App');
-
-var _App2 = _interopRequireDefault(_App);
-
-var _configureStore = require('./store/configureStore');
-
-var _configureStore2 = _interopRequireDefault(_configureStore);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/** @jsx html */
-
-var store = (0, _configureStore2.default)();
-
-(0, _mount2.default)(store, function () {
-  return (0, _snabbdomJsx.html)(_App2.default, { state: store.getState() });
-}, document.getElementById('placeholder'));
-
-},{"../../../src/mount":27,"./containers/App":4,"./store/configureStore":8,"snabbdom-jsx":19}],6:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = counter;
-
-var _counter = require('../actions/counter');
-
-function counter() {
-  var state = arguments.length <= 0 || arguments[0] === undefined ? 0 : arguments[0];
-  var action = arguments[1];
-
-  switch (action.type) {
-    case _counter.INCREMENT_COUNTER:
-      return state + 1;
-    case _counter.DECREMENT_COUNTER:
-      return state - 1;
-    default:
-      return state;
-  }
-}
-
-},{"../actions/counter":2}],7:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
 var _redux = require('redux');
 
-var _counter = require('./counter');
+var _reduxLogger = require('redux-logger');
 
-var _counter2 = _interopRequireDefault(_counter);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var rootReducer = (0, _redux.combineReducers)({
-  counter: _counter2.default
-});
-
-exports.default = rootReducer;
-
-},{"./counter":6,"redux":11}],8:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = configureStore;
-
-var _redux = require('redux');
+var _reduxLogger2 = _interopRequireDefault(_reduxLogger);
 
 var _reduxThunk = require('redux-thunk');
 
 var _reduxThunk2 = _interopRequireDefault(_reduxThunk);
 
-var _reducers = require('../reducers');
+var _reducers = require('./reducers');
 
 var _reducers2 = _interopRequireDefault(_reducers);
 
+var _actions = require('./actions');
+
+var _App = require('./containers/App');
+
+var _App2 = _interopRequireDefault(_App);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var createStoreWithMiddleware = (0, _redux.applyMiddleware)(_reduxThunk2.default)(_redux.createStore);
+/** @jsx html */
 
-function configureStore(initialState) {
-  var store = createStoreWithMiddleware(_reducers2.default, initialState);
-  return store;
+var createStoreWithMiddleware = (0, _redux.applyMiddleware)(_reduxThunk2.default, (0, _reduxLogger2.default)())(_redux.createStore);
+var store = createStoreWithMiddleware(_reducers2.default);
+
+store.dispatch((0, _actions.getAllProducts)());
+
+(0, _mount2.default)(store, function () {
+  return (0, _snabbdomJsx.html)(_App2.default, { state: store.getState() });
+}, document.getElementById('placeholder'));
+
+},{"../../../src/mount":36,"./actions":2,"./containers/App":10,"./reducers":15,"redux":20,"redux-logger":17,"redux-thunk":18,"snabbdom-jsx":28}],14:[function(require,module,exports){
+'use strict';
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = cart;
+exports.getQuantity = getQuantity;
+exports.getAddedIds = getAddedIds;
+
+var _ActionTypes = require('../constants/ActionTypes');
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+var initialState = {
+  addedIds: [],
+  quantityById: {}
+};
+
+function addedIds() {
+  var state = arguments.length <= 0 || arguments[0] === undefined ? initialState.addedIds : arguments[0];
+  var action = arguments[1];
+
+  switch (action.type) {
+    case _ActionTypes.ADD_TO_CART:
+      if (state.indexOf(action.productId) !== -1) {
+        return state;
+      }
+      return [].concat(_toConsumableArray(state), [action.productId]);
+    default:
+      return state;
+  }
 }
 
-},{"../reducers":7,"redux":11,"redux-thunk":9}],9:[function(require,module,exports){
+function quantityById() {
+  var state = arguments.length <= 0 || arguments[0] === undefined ? initialState.quantityById : arguments[0];
+  var action = arguments[1];
+
+  switch (action.type) {
+    case _ActionTypes.ADD_TO_CART:
+      var productId = action.productId;
+
+      return _extends({}, state, _defineProperty({}, productId, (state[productId] || 0) + 1));
+    default:
+      return state;
+  }
+}
+
+function cart() {
+  var state = arguments.length <= 0 || arguments[0] === undefined ? initialState : arguments[0];
+  var action = arguments[1];
+
+  switch (action.type) {
+    case _ActionTypes.CHECKOUT_REQUEST:
+      return initialState;
+    case _ActionTypes.CHECKOUT_FAILURE:
+      return action.cart;
+    default:
+      return {
+        addedIds: addedIds(state.addedIds, action),
+        quantityById: quantityById(state.quantityById, action)
+      };
+  }
+}
+
+function getQuantity(state, productId) {
+  return state.quantityById[productId] || 0;
+}
+
+function getAddedIds(state) {
+  return state.addedIds;
+}
+
+},{"../constants/ActionTypes":9}],15:[function(require,module,exports){
+'use strict';
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getTotal = getTotal;
+exports.getCartProducts = getCartProducts;
+
+var _redux = require('redux');
+
+var _cart = require('./cart');
+
+var _cart2 = _interopRequireDefault(_cart);
+
+var _products = require('./products');
+
+var _products2 = _interopRequireDefault(_products);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function getTotal(state) {
+  return (0, _cart.getAddedIds)(state.cart).reduce(function (total, id) {
+    return total + (0, _products.getProduct)(state.products, id).price * (0, _cart.getQuantity)(state.cart, id);
+  }, 0).toFixed(2);
+}
+
+function getCartProducts(state) {
+  return (0, _cart.getAddedIds)(state.cart).map(function (id) {
+    return _extends({}, (0, _products.getProduct)(state.products, id), {
+      quantity: (0, _cart.getQuantity)(state.cart, id)
+    });
+  });
+}
+
+exports.default = (0, _redux.combineReducers)({
+  cart: _cart2.default,
+  products: _products2.default
+});
+
+},{"./cart":14,"./products":16,"redux":20}],16:[function(require,module,exports){
+'use strict';
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getProduct = getProduct;
+exports.getVisibleProducts = getVisibleProducts;
+
+var _redux = require('redux');
+
+var _ActionTypes = require('../constants/ActionTypes');
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+function products(state, action) {
+  switch (action.type) {
+    case _ActionTypes.ADD_TO_CART:
+      return _extends({}, state, {
+        inventory: state.inventory - 1
+      });
+    default:
+      return state;
+  }
+}
+
+function byId() {
+  var state = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+  var action = arguments[1];
+
+  switch (action.type) {
+    case _ActionTypes.RECEIVE_PRODUCTS:
+      return _extends({}, state, action.products.reduce(function (obj, product) {
+        obj[product.id] = product;
+        return obj;
+      }, {}));
+    default:
+      var productId = action.productId;
+
+      if (productId) {
+        return _extends({}, state, _defineProperty({}, productId, products(state[productId], action)));
+      }
+      return state;
+  }
+}
+
+function visibleIds() {
+  var state = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+  var action = arguments[1];
+
+  switch (action.type) {
+    case _ActionTypes.RECEIVE_PRODUCTS:
+      return action.products.map(function (product) {
+        return product.id;
+      });
+    default:
+      return state;
+  }
+}
+
+exports.default = (0, _redux.combineReducers)({
+  byId: byId,
+  visibleIds: visibleIds
+});
+function getProduct(state, id) {
+  return state.byId[id];
+}
+
+function getVisibleProducts(state) {
+  return state.visibleIds.map(function (id) {
+    return getProduct(state, id);
+  });
+}
+
+},{"../constants/ActionTypes":9,"redux":20}],17:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var repeat = function repeat(str, times) {
+  return new Array(times + 1).join(str);
+};
+var pad = function pad(num, maxLength) {
+  return repeat("0", maxLength - num.toString().length) + num;
+};
+
+// Use the new performance api to get better precision if available
+var timer = typeof performance !== "undefined" && typeof performance.now === "function" ? performance : Date;
+
+/**
+ * Creates logger with followed options
+ *
+ * @namespace
+ * @property {object} options - options for logger
+ * @property {string} options.level - console[level]
+ * @property {object} options.logger - implementation of the `console` API.
+ * @property {boolean} options.collapsed - is group collapsed?
+ * @property {boolean} options.predicate - condition which resolves logger behavior
+ * @property {bool} options.duration - print duration of each action?
+ * @property {bool} options.timestamp - print timestamp with each action?
+ * @property {function} options.transformer - transform state before print
+ * @property {function} options.actionTransformer - transform action before print
+ */
+
+function createLogger() {
+  var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+  return function (_ref) {
+    var getState = _ref.getState;
+    return function (next) {
+      return function (action) {
+        var level = options.level;
+        var logger = options.logger;
+        var collapsed = options.collapsed;
+        var predicate = options.predicate;
+        var _options$duration = options.duration;
+        var duration = _options$duration === undefined ? false : _options$duration;
+        var _options$timestamp = options.timestamp;
+        var timestamp = _options$timestamp === undefined ? true : _options$timestamp;
+        var _options$transformer = options.transformer;
+        var transformer = _options$transformer === undefined ? function (state) {
+          return state;
+        } : _options$transformer;
+        var _options$actionTransformer = options.actionTransformer;
+        var actionTransformer = _options$actionTransformer === undefined ? function (actn) {
+          return actn;
+        } : _options$actionTransformer;
+
+        var console = logger || window.console;
+
+        // exit if console undefined
+        if (typeof console === "undefined") {
+          return next(action);
+        }
+
+        // exit early if predicate function returns false
+        if (typeof predicate === "function" && !predicate(getState, action)) {
+          return next(action);
+        }
+
+        var started = timer.now();
+        var prevState = transformer(getState());
+
+        var returnValue = next(action);
+        var took = timer.now() - started;
+
+        var nextState = transformer(getState());
+
+        // formatters
+        var time = new Date();
+        var isCollapsed = typeof collapsed === "function" ? collapsed(getState, action) : collapsed;
+
+        var formattedTime = timestamp ? " @ " + pad(time.getHours(), 2) + ":" + pad(time.getMinutes(), 2) + ":" + pad(time.getSeconds(), 2) + "." + pad(time.getMilliseconds(), 3) : "";
+        var formattedDuration = duration ? " in " + took.toFixed(2) + " ms" : "";
+        var formattedAction = actionTransformer(action);
+        var message = "action " + formattedAction.type + formattedTime + formattedDuration;
+        var startMessage = isCollapsed ? console.groupCollapsed : console.group;
+
+        // render
+        try {
+          startMessage.call(console, message);
+        } catch (e) {
+          console.log(message);
+        }
+
+        if (level) {
+          console[level]("%c prev state", "color: #9E9E9E; font-weight: bold", prevState);
+          console[level]("%c action", "color: #03A9F4; font-weight: bold", formattedAction);
+          console[level]("%c next state", "color: #4CAF50; font-weight: bold", nextState);
+        } else {
+          console.log("%c prev state", "color: #9E9E9E; font-weight: bold", prevState);
+          console.log("%c action", "color: #03A9F4; font-weight: bold", formattedAction);
+          console.log("%c next state", "color: #4CAF50; font-weight: bold", nextState);
+        }
+
+        try {
+          console.groupEnd();
+        } catch (e) {
+          console.log("—— log end ——");
+        }
+
+        return returnValue;
+      };
+    };
+  };
+}
+
+exports["default"] = createLogger;
+module.exports = exports["default"];
+},{}],18:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -334,7 +848,7 @@ function thunkMiddleware(_ref) {
 }
 
 module.exports = exports['default'];
-},{}],10:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -498,7 +1012,7 @@ function createStore(reducer, initialState) {
     replaceReducer: replaceReducer
   };
 }
-},{"./utils/isPlainObject":16}],11:[function(require,module,exports){
+},{"./utils/isPlainObject":25}],20:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -530,7 +1044,7 @@ exports.combineReducers = _utilsCombineReducers2['default'];
 exports.bindActionCreators = _utilsBindActionCreators2['default'];
 exports.applyMiddleware = _utilsApplyMiddleware2['default'];
 exports.compose = _utilsCompose2['default'];
-},{"./createStore":10,"./utils/applyMiddleware":12,"./utils/bindActionCreators":13,"./utils/combineReducers":14,"./utils/compose":15}],12:[function(require,module,exports){
+},{"./createStore":19,"./utils/applyMiddleware":21,"./utils/bindActionCreators":22,"./utils/combineReducers":23,"./utils/compose":24}],21:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -592,7 +1106,7 @@ function applyMiddleware() {
 }
 
 module.exports = exports['default'];
-},{"./compose":15}],13:[function(require,module,exports){
+},{"./compose":24}],22:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -648,7 +1162,7 @@ function bindActionCreators(actionCreators, dispatch) {
 }
 
 module.exports = exports['default'];
-},{"../utils/mapValues":17}],14:[function(require,module,exports){
+},{"../utils/mapValues":26}],23:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -782,7 +1296,7 @@ function combineReducers(reducers) {
 
 module.exports = exports['default'];
 }).call(this,require('_process'))
-},{"../createStore":10,"../utils/isPlainObject":16,"../utils/mapValues":17,"../utils/pick":18,"_process":1}],15:[function(require,module,exports){
+},{"../createStore":19,"../utils/isPlainObject":25,"../utils/mapValues":26,"../utils/pick":27,"_process":1}],24:[function(require,module,exports){
 /**
  * Composes single-argument functions from right to left.
  *
@@ -808,7 +1322,7 @@ function compose() {
 }
 
 module.exports = exports["default"];
-},{}],16:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -839,7 +1353,7 @@ function isPlainObject(obj) {
 }
 
 module.exports = exports['default'];
-},{}],17:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 /**
  * Applies a function to every key-value pair inside an object.
  *
@@ -860,7 +1374,7 @@ function mapValues(obj, fn) {
 }
 
 module.exports = exports["default"];
-},{}],18:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /**
  * Picks key-value pairs from an object where values satisfy a predicate.
  *
@@ -883,7 +1397,7 @@ function pick(obj, fn) {
 }
 
 module.exports = exports["default"];
-},{}],19:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict";
 
 var SVGNS = "http://www.w3.org/2000/svg";
@@ -957,13 +1471,13 @@ module.exports = {
   JSX: JSX 
 };
 
-},{}],20:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = {
   array: Array.isArray,
   primitive: function(s) { return typeof s === 'string' || typeof s === 'number'; },
 };
 
-},{}],21:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 function updateClass(oldVnode, vnode) {
   var cur, name, elm = vnode.elm,
       oldClass = oldVnode.data.class || {},
@@ -978,7 +1492,7 @@ function updateClass(oldVnode, vnode) {
 
 module.exports = {create: updateClass, update: updateClass};
 
-},{}],22:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 function updateProps(oldVnode, vnode) {
   var key, cur, old, elm = vnode.elm,
       oldProps = oldVnode.data.props || {}, props = vnode.data.props || {};
@@ -993,7 +1507,7 @@ function updateProps(oldVnode, vnode) {
 
 module.exports = {create: updateProps, update: updateProps};
 
-},{}],23:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var raf = requestAnimationFrame || setTimeout;
 var nextFrame = function(fn) { raf(function() { raf(fn); }); };
 
@@ -1054,7 +1568,7 @@ function applyRemoveStyle(vnode, rm) {
 
 module.exports = {create: updateStyle, update: updateStyle, destroy: applyDestroyStyle, remove: applyRemoveStyle};
 
-},{}],24:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 // jshint newcap: false
 /* global require, module, document, Element */
 'use strict';
@@ -1289,14 +1803,14 @@ function init(modules) {
 
 module.exports = {init: init};
 
-},{"./is":20,"./vnode":25}],25:[function(require,module,exports){
+},{"./is":29,"./vnode":34}],34:[function(require,module,exports){
 module.exports = function(sel, data, children, text, elm) {
   var key = data === undefined ? undefined : data.key;
   return {sel: sel, data: data, children: children,
           text: text, elm: elm, key: key};
 };
 
-},{}],26:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1340,7 +1854,7 @@ exports.default = function (dispatch) {
   };
 };
 
-},{}],27:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1403,4 +1917,4 @@ function mount(store, render, elm) {
   updateUI();
 }
 
-},{"./actionDispatcher":26,"snabbdom":24,"snabbdom/modules/class":21,"snabbdom/modules/props":22,"snabbdom/modules/style":23}]},{},[5]);
+},{"./actionDispatcher":35,"snabbdom":33,"snabbdom/modules/class":30,"snabbdom/modules/props":31,"snabbdom/modules/style":32}]},{},[13]);

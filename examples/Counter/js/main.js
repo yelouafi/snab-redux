@@ -1,13 +1,14 @@
 /** @jsx html */
 
 import { html } from 'snabbdom-jsx';
-import bootstrap from '../../../src/bootstrap'
-import Counter from './components/Counter'
-import * as actions from './actions/counter'
+import mount from '../../../src/mount'
+import App from './containers/App'
 import configureStore from './store/configureStore'
 
-bootstrap(
-  configureStore(),
-  ({state}) => <Counter counter={state.counter} actions={actions} />,
+const store = configureStore()
+
+mount(
+  store,
+  () => <App state={store.getState()} />,
   document.getElementById('placeholder')
 )

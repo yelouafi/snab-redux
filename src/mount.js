@@ -6,10 +6,10 @@ import actionDispatcher from './actionDispatcher';
 
 const raf = window.requestAnimationFrame || (cb => cb());
 
-export default function bootstrap(store, render, elm, snabbdomModules=[]) {
+export default function mount(store, render, elm, snabbdomModules=[]) {
 
   const patch = snabbdom.init([
-    clazz, props, style, actionDispatcher(store.dispatch),
+    clazz, props, style, actionDispatcher(dispatch),
     ...snabbdomModules
   ]);
 
@@ -20,11 +20,16 @@ export default function bootstrap(store, render, elm, snabbdomModules=[]) {
     if(!frameRequested)  {
       raf( () => {
         frameRequested = false;
-        const newVnode = render({state: store.getState()});
+        const newVnode = render(dispatch);
         vnode = patch(vnode, newVnode);
       });
       frameRequested = true;
     }
+  }
+
+  function dispatch(action) {
+    if(action !== undefined)
+      store.dispatch(action);
   }
 
   store.subscribe(updateUI);
